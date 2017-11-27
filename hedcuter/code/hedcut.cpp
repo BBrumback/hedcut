@@ -113,14 +113,30 @@ void Hedcut::create_disks(cv::Mat & img, CVT & cvt)
 	{
 		//compute avg intensity
 		unsigned int total = 0;
+		unsigned int maxIntensity = -1;
+		unsigned int sumX = 0, sumY = 0;
 		unsigned int r = 0, g = 0, b = 0;
 		for (auto & resizedPix : cell.coverage)
 		{
+			
 			cv::Point pix(resizedPix.x / subpixels, resizedPix.y / subpixels);
-			total += grayscale.at<uchar>(pix.x, pix.y);
+			unsigned int intensity = grayscale.at<uchar>(pix.x, pix.y);
+			//std::cout << "Intensity " << intensity;
+			total += intensity;
 			r += img.at<cv::Vec3b>(pix.x, pix.y)[2];
 			g += img.at<cv::Vec3b>(pix.x, pix.y)[1];
 			b += img.at<cv::Vec3b>(pix.x, pix.y)[0];
+			//std::cout << "pix.x and y " << pix.x << " " << pix.y << "\n";
+			sumX += intensity * pix.x;
+			sumY += intensity * pix.y;
+
+			/*if(maxIntensity > intensity)
+			{
+				maxIntensity = intensity;
+				bestX = pix.x;
+				bestY = pix.y;
+				//std::cout << "best X: " << pix.x;
+			}*/
 		}
 		float avg_v = floor(total * 1.0f/ cell.coverage.size());
 		r = floor(r / cell.coverage.size());
@@ -129,8 +145,19 @@ void Hedcut::create_disks(cv::Mat & img, CVT & cvt)
 
 		//create a disk
 		HedcutDisk disk;
-		disk.center.x = cell.site.y; //x = col
-		disk.center.y = cell.site.x; //y = row
+		if(total > 0){
+			std::cout << "Position " << sumY/total << " " << sumX/total << " " << total << " " << sumY << " " << sumX << "\n";
+			std::cout << "Site " << cell.site.y << " " << cell.site.x << "\n";
+			disk.center.x = sumY/total;
+			disk.center.y = sumX/total;
+		}else{
+			disk.center.x = sumY;
+			disk.center.y = sumX;
+		}		
+		//disk.center.x = bestY; //x = col
+		//disk.center.y = bestX; //y = row
+		//disk.center.x = cell.site.y; //x = col
+		//disk.center.y = cell.site.x; //y = row
 		disk.color = (black_disk) ? cv::Scalar::all(0) : cv::Scalar(r, g, b, 0.0);
 		disk.radius = (uniform_disk_size) ? disk_size : (100 * disk_size / (avg_v + 100));
 
